@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>পেইড ক্যাম্পেইন - ইউজার প্যানেল</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: #eef1f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-wrapper {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -15px rgba(0,0,0,0.15);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .top-header {
+            background: #0a1e2f;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 100;
+        }
+
+        .top-header .logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-header .logo i {
+            color: #f5a623;
+        }
+
+        .top-header .online-status {
+            color: #4ade80;
+            font-size: 13px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .top-header .online-status .dot {
+            width: 10px;
+            height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .hamburger {
+            font-size: 26px;
+            color: white;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 8px;
+            transition: 0.2s;
+            display: none;
+        }
+
+        .hamburger:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        .sidebar-drawer {
+            position: fixed;
+            top: 0;
+            left: -320px;
+            width: 300px;
+            height: 100%;
+            background: linear-gradient(180deg, #0a1e2f 0%, #122b3f 100%);
+            color: #e0edf5;
+            padding: 28px 20px;
+            z-index: 1000;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-drawer.active {
+            left: 0;
+        }
+
+        .sidebar-drawer .close-btn {
+            text-align: right;
+            font-size: 28px;
+            color: white;
+            cursor: pointer;
+            padding: 0 4px 20px 0;
+        }
+
+        .sidebar-drawer .drawer-logo {
+            font-size: 22px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            border-bottom: 1px solid #2a4a62;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-drawer .drawer-logo i {
+            color: #f5a623;
+        }
+
+        .drawer-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 16px;
+            margin: 4px 0;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            color: #b8cfdf;
+            font-size: 15px;
+        }
+
+        .drawer-nav-item i {
+            width: 22px;
+            font-size: 1.1rem;
+            color: #8aacbf;
+        }
+
+        .drawer-nav-item.active {
+            background: #1e4460;
+            color: white;
+        }
+
+        .drawer-nav-item.active i {
+            color: white;
+        }
+
+        .drawer-nav-item:hover:not(.active) {
+            background: #1a3a52;
+            color: white;
+        }
+
+        .drawer-nav-item:hover:not(.active) i {
+            color: white;
+        }
+
+        .drawer-logout {
+            margin-top: 40px;
+            border-top: 1px solid #2a4a62;
+            padding-top: 18px;
+        }
+
+        .drawer-logout .drawer-nav-item {
+            color: #f5a07a;
+        }
+
+        .drawer-logout .drawer-nav-item i {
+            color: #f5a07a;
+        }
+
+        .main-area {
+            background: #f7f9fc;
+            padding: 24px 28px;
+            min-height: 80vh;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: #0a1e2f;
+        }
+
+        .balance-badge {
+            background: white;
+            padding: 10px 22px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #e8ecf2;
+        }
+
+        .balance-badge span {
+            color: #0a2540;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+            border: 1px solid #eef2f8;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .stat-box {
+            background: white;
+            border-radius: 20px;
+            padding: 18px 20px;
+            border: 1px solid #eef2f8;
+            text-align: center;
+        }
+
+        .stat-box .number {
+            font-size: 30px;
+            font-weight: 800;
+            color: #0a1e2f;
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            color: #6b7f94;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #1f3b4c;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 15px;
+            background: #fafbfc;
+            transition: 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #0a1e2f;
+            background: white;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: #0a1e2f;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #143449;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-whatsapp {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #25D366;
+            color: white;
+            padding: 14px 30px;
+            border-radius: 60px;
+            font-size: 16px;
+            font-weight: 700;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-whatsapp:hover {
+            background: #1da851;
+        }
+
+        .budget-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 8px 0 12px;
+        }
+
+        .budget-btn {
+            padding: 10px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 30px;
+            background: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .budget-btn.selected {
+            background: #0a1e2f;
+            color: white;
+            border-color: #0a1e2f;
+        }
+
+        .warning-box {
+            background: #fef9e7;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 13px;
+            color: #7d6608;
+            border-left: 4px solid #f1c40f;
+            margin: 12px 0;
+        }
+
+        .rules-list {
+            list-style: none;
+        }
+
+        .rules-list li {
+            padding: 4px 0;
+            font-size: 14px;
+            color: #1f3b4c;
+        }
+
+        .rules-list li::before {
+            content: "✅ ";
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        table th {
+            text-align: left;
+            padding: 12px 14px;
+            background: #eef2f6;
+            color: #1f3b4c;
+            font-weight: 700;
+            border-radius: 4px;
+        }
+
+        table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e8ecf2;
+        }
+
+        .status-rejected {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+
+        .status-completed {
+            color: #067647;
+            font-weight: 600;
+        }
+
+        .status-approved {
+            color: #067647;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            color: #b7950b;
+            font-weight: 600;
+        }
+
+        .sub-note {
+            font-size: 13px;
+            color: #6b7f94;
+            margin-bottom: 12px;
+        }
+
+        .contact-center {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .contact-center .whatsapp-icon {
+            font-size: 64px;
+            color: #25D366;
+            margin-bottom: 16px;
+        }
+
+        .contact-center h2 {
+            font-size: 20px;
+            color: #0a1e2f;
+            margin-bottom: 8px;
+        }
+
+        .contact-center p {
+            color: #5b6e8c;
+            max-width: 380px;
+            margin: 0 auto 20px;
+            line-height: 1.6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            color: #6b7f94;
+        }
+
+        .empty-state i {
+            font-size: 40px;
+            color: #c0d0e0;
+            margin-bottom: 12px;
+        }
+
+        .empty-state h3 {
+            color: #0a1e2f;
+            margin-bottom: 6px;
+        }
+
+        .url-list .url-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 7px 0;
+            font-size: 13px;
+            color: #1f3b4c;
+            word-break: break-all;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .url-list .url-item .check {
+            color: #b0c0d0;
+            margin-top: 2px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            border-radius: 16px;
+            color: white;
+            font-weight: 600;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            max-width: 400px;
+        }
+
+        .toast-success {
+            background: #067647;
+        }
+
+        .toast-error {
+            background: #b91c1c;
+        }
+
+        .toast-info {
+            background: #0a1e2f;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(40px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-area {
+                padding: 16px;
+            }
+            .card {
+                padding: 18px 16px;
+            }
+            .hamburger {
+                display: block;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .budget-btns {
+                gap: 6px;
+            }
+            .budget-btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+            .top-header .online-status span {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-wrapper {
+                border-radius: 16px;
+            }
+            .page-header h1 {
+                font-size: 20px;
+            }
+            .balance-badge {
+                font-size: 14px;
+                padding: 6px 16px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            .stat-box {
+                padding: 12px 8px;
+            }
+            .stat-box .number {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-wrapper" id="app">
+
+    <!-- ===== AUTH VIEW ===== -->
+    <div id="authView" style="max-width:480px; margin:40px auto; padding:20px; width:100%;">
+        <div id="authContainer"></div>
+    </div>
+
+    <!-- ===== DASHBOARD VIEW ===== -->
+    <div id="dashView" class="hidden">
+        <div class="top-header">
+            <div class="logo"><i class="fas fa-bullhorn"></i> Paid Campaign</div>
+            <div class="online-status">
+                <span class="dot"></span>
+                <span id="connectionStatus">Connecting...</span>
+            </div>
+            <div class="hamburger" id="hamburgerBtn"><i class="fas fa-bars"></i></div>
+        </div>
+
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <div class="sidebar-drawer" id="sidebarDrawer">
+            <div class="close-btn" id="closeSidebar"><i class="fas fa-times"></i></div>
+            <div class="drawer-logo"><i class="fas fa-bullhorn"></i> Paid Campaign</div>
+
+            <div class="drawer-nav-item active" data-page="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
+            <div class="drawer-nav-item" data-page="deposit"><i class="fas fa-money-bill-wave"></i> Deposit Money</div>
+            <div class="drawer-nav-item" data-page="newcampaign"><i class="fas fa-plus-circle"></i> New Campaign</div>
+            <div class="drawer-nav-item" data-page="mycampaigns"><i class="fas fa-history"></i> My Campaigns</div>
+            <div class="drawer-nav-item" data-page="support"><i class="fas fa-headset"></i> Contact Support</div>
+
+            <div class="drawer-logout">
+                <div class="drawer-nav-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
+            </div>
+        </div>
+
+        <div class="main-area" id="mainContent">
+
+            <!-- DASHBOARD -->
+            <div class="page active" id="page-dashboard">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <div class="balance-badge">Balance: <span id="dashBalance">৳0.00</span></div>
+                </div>
+
+                <div class="card">
+                    <div style="font-size:16px; font-weight:600; color:#0a1e2f;">WELCOME BACK</div>
+                    <div style="font-size:20px; font-weight:800; color:#0a1e2f;" id="dashUsername">User</div>
+                    <div style="color:#5b6e8c; margin:4px 0 12px;" id="dashPhone">📞 +8801XXXXXXXXX</div>
+                    <div style="font-weight:600;">TOTAL ASSETS <span style="font-size:22px; margin-left:8px;" id="dashTotalAssets">৳0.00</span></div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="number" id="statPending">0</div><div class="label">PENDING TASKS</div></div>
+                    <div class="stat-box"><div class="number" id="statActive">0</div><div class="label">ACTIVE CAMPAIGNS</div></div>
+                    <div class="stat-box"><div class="number" id="statCompleted">0</div><div class="label">COMPLETED TASKS</div></div>
+                </div>
+
+                <div class="card">
+                    <i class="fas fa-chart-line" style="color:#0a1e2f;"></i> Welcome to Paid Campaign! Start your first campaign today.
+                </div>
+            </div>
+
+            <!-- DEPOSIT -->
+            <div class="page" id="page-deposit">
+                <div class="page-header"><h1>Deposit Money</h1></div>
+
+                <div class="card">
+                    <div style="font-weight:700; font-size:16px;">Balance: <span id="depositBalance">৳0.00</span></div>
+                    <div style="background:#f0f7ff; border-radius:16px; padding:16px; margin:16px 0; border-left:4px solid #0a1e2f; font-size:14px; line-height:1.8;" id="paymentInfoDisplay">
+                        <strong>📞 OFFICIAL PAYMENT NUMBER (BKASH / NAGAD)</strong><br>
+                        <span id="displayPaymentNumber">01727369268</span><br>
+                        <em>Minimum deposit amount is <span id="displayMinDeposit">৳50</span></em><br><br>
+                        <strong>💳 OFFICIAL BINANCE PAY ID</strong><br>
+                        <span id="displayBinanceId">180728766</span><br>
+                        <em>Minimum $1 Deposit (Rate: 1 USD = ৳120)</em>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Method</label>
+                        <select id="paymentMethodSelect">
+                            <option value="bKash Personal">bKash Personal</option>
+                            <option value="Nagad">Nagad</option>
+                            <option value="Rocket">Rocket</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sender Mobile Number</label>
+                        <input type="tel" id="depositMobile" placeholder="01XXXXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label>Transaction ID (TrxID)</label>
+                        <input type="text" id="depositTrxid" placeholder="Enter transaction reference">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount Sent (৳)</label>
+                        <input type="number" id="depositAmount" placeholder="Minimum 50">
+                    </div>
+                    <button class="btn-primary" id="submitDepositBtn">Submit Deposit Request</button>
+                </div>
+
+                <h3 style="margin:20px 0 12px; font-size:18px; color:#0a1e2f;">Deposit Request History</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>METHOD</th><th>TRXID / ORDERID</th><th>AMOUNT</th><th>STATUS</th></tr></thead>
+                        <tbody id="depositHistoryBody">
+                            <tr><td colspan="4" style="text-align:center; color:#6b7f94; padding:30px 0;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- NEW CAMPAIGN -->
+            <div class="page" id="page-newcampaign">
+                <div class="page-header"><h1>New Campaign</h1></div>
+
+                <div class="card">
+                    <div style="font-weight:700; font-size:16px;">Balance: <span id="campaignBalance">৳0.00</span></div>
+
+                    <div style="background:#f8fafc; border-radius:16px; padding:16px; margin:16px 0; border:1px solid #eef2f8;">
+                        <div style="font-weight:700; color:#0a1e2f; margin-bottom:6px;">Campaign Rules & Requirements:</div>
+                        <ul class="rules-list" id="rulesListDisplay">
+                            <li>Loading...</li>
+                        </ul>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Target Website / Campaign Link</label>
+                        <input type="url" id="campaignUrl" placeholder="https://example.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Select Campaign Budget Tier</label>
+                        <div class="budget-btns" id="budgetGroup">
+                            <div class="budget-btn" data-budget="30">৳30 Trial Pack</div>
+                            <div class="budget-btn" data-budget="50">৳50 Starter Pack</div>
+                            <div class="budget-btn" data-budget="100">৳100 Growth Pack</div>
+                            <div class="budget-btn" data-budget="500">৳500 Premium Boost</div>
+                        </div>
+                    </div>
+
+                    <div class="warning-box">
+                        ⚠️ Campaign budgets are strictly verified. Once submitted, it will be sent to the Admin queue for review.
+                    </div>
+
+                    <button class="btn-primary" id="launchCampaignBtn">Launch Campaign Now</button>
+                </div>
+            </div>
+
+            <!-- MY CAMPAIGNS -->
+            <div class="page" id="page-mycampaigns">
+                <div class="page-header"><h1>My Campaigns</h1></div>
+
+                <div class="balance-badge" style="display:inline-block; margin-bottom:12px;">Balance: <span id="myCampaignsBalance">৳0.00</span></div>
+                <div class="sub-note">Showing data logged over the last 30 days only</div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>BUDGET ALLOC.</th><th>SUBMISSION DATE</th><th>EXECUTION STATUS</th></tr></thead>
+                        <tbody id="campaignsTableBody">
+                            <tr><td colspan="3" style="text-align:center; color:#6b7f94; padding:30px 0;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:28px;">
+                    <div style="font-weight:700; color:#0a1e2f; margin-bottom:10px;">TARGET DESTINATION URL</div>
+                    <div class="url-list" id="targetUrlList">
+                        <div class="empty-state">
+                            <i class="fas fa-link"></i>
+                            <h3>No URLs Added</h3>
+                            <p>Your campaign target URLs will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUPPORT -->
+            <div class="page" id="page-support">
+                <div class="contact-center">
+                    <div class="whatsapp-icon"><i class="fab fa-whatsapp"></i></div>
+                    <h2>Contact</h2>
+                    <div style="background:#f8fafc; border-radius:16px; padding:12px; margin:12px auto; max-width:200px; border:1px solid #eef2f8; font-weight:600;">Balance: <span id="supportBalance">৳0.00</span></div>
+                    <h2 style="font-size:18px; margin-top:8px;">Instant Support Channels</h2>
+                    <p>Facing issues with deposits or campaigns? Reach out directly via WhatsApp for swift assistance.</p>
+                    <a href="#" class="btn-whatsapp"><i class="fab fa-whatsapp"></i> Launch Live WhatsApp Chat</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // ================================================================
+    // FIREBASE CONFIGURATION
+    // ================================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyDS6_ylEm6LazCjcsFhnJ9DRLT5MG09KhQ",
+        authDomain: "paid-campaign-513e2.firebaseapp.com",
+        databaseURL: "https://paid-campaign-513e2-default-rtdb.firebaseio.com",
+        projectId: "paid-campaign-513e2",
+        storageBucket: "paid-campaign-513e2.firebasestorage.app",
+        messagingSenderId: "601243345615",
+        appId: "1:601243345615:web:76162979bd1583b22dcdba"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // ================================================================
+    // DATABASE REFERENCES
+    // ================================================================
+    const usersRef = database.ref('users');
+    const depositsRef = database.ref('deposits');
+    const campaignsRef = database.ref('campaigns');
+    const settingsRef = database.ref('settings');
+
+    // ================================================================
+    // STATE
+    // ================================================================
+    let isLoggedIn = false;
+    let currentUser = {
+        id: null,
+        username: '',
+        phone: '',
+        balance: 0,
+        status: 'active'
+    };
+
+    let selectedBudget = null;
+    let settingsData = {};
+    
+    // ================================================================
+    // FLAG untuk mencegah double submit
+    // ================================================================
+    let isDepositSubmitting = false;
+    let isCampaignSubmitting = false;
+
+    // ================================================================
+    // TOAST NOTIFICATION
+    // ================================================================
+    function showToast(message, type = 'success') {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // ================================================================
+    // FORMATTING
+    // ================================================================
+    function formatMoney(amount) {
+        return '৳' + Number(amount).toFixed(2);
+    }
+
+    // ================================================================
+    // CONNECTION STATUS
+    // ================================================================
+    function updateConnectionStatus(connected) {
+        const statusEl = document.getElementById('connectionStatus');
+        const dot = document.querySelector('.dot');
+        if (connected) {
+            statusEl.textContent = 'Connected';
+            dot.style.background = '#4ade80';
+        } else {
+            statusEl.textContent = 'Disconnected';
+            dot.style.background = '#f87171';
+        }
+    }
+
+    database.ref('.info/connected').on('value', (snap) => {
+        updateConnectionStatus(snap.val());
+    });
+
+    // ================================================================
+    // RENDER FUNCTIONS
+    // ================================================================
+    function updateAllBalances() {
+        const bal = formatMoney(currentUser.balance || 0);
+        document.getElementById('dashBalance').textContent = bal;
+        document.getElementById('dashTotalAssets').textContent = bal;
+        document.getElementById('depositBalance').textContent = bal;
+        document.getElementById('campaignBalance').textContent = bal;
+        document.getElementById('myCampaignsBalance').textContent = bal;
+        document.getElementById('supportBalance').textContent = bal;
+    }
+
+    function renderCampaignsTable(campaigns) {
+        const tbody = document.getElementById('campaignsTableBody');
+        const userCampaigns = campaigns.filter(c => c.userId === currentUser.id);
+        
+        if (userCampaigns.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#6b7f94; padding:30px 0;">No campaigns yet. Create your first campaign!</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = userCampaigns.map(c => `
+            <tr>
+                <td>৳${c.budget}</td>
+                <td>${c.date || 'N/A'}</td>
+                <td class="${c.status === 'completed' ? 'status-completed' : c.status === 'pending' ? 'status-pending' : 'status-rejected'}">${c.status.charAt(0).toUpperCase() + c.status.slice(1)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderTargetUrls(campaigns) {
+        const container = document.getElementById('targetUrlList');
+        const userCampaigns = campaigns.filter(c => c.userId === currentUser.id);
+        const urls = userCampaigns.map(c => c.targetUrl).filter(url => url);
+        
+        if (urls.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-link"></i>
+                    <h3>No URLs Added</h3>
+                    <p>Your campaign target URLs will appear here</p>
+                </div>
+            `;
+            return;
+        }
+        container.innerHTML = urls.map(url => `
+            <div class="url-item">
+                <span class="check">☐</span>
+                <span>${url}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderDepositHistory(deposits) {
+        const tbody = document.getElementById('depositHistoryBody');
+        const userDeposits = deposits.filter(d => d.userId === currentUser.id);
+        
+        if (userDeposits.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#6b7f94; padding:30px 0;">No deposit history yet</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = userDeposits.map(d => `
+            <tr>
+                <td>${d.method || 'N/A'}</td>
+                <td>${d.trxid || 'N/A'}</td>
+                <td>৳${Number(d.amount).toFixed(2)}</td>
+                <td class="${d.status === 'approved' ? 'status-approved' : d.status === 'pending' ? 'status-pending' : 'status-rejected'}">${d.status.charAt(0).toUpperCase() + d.status.slice(1)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderStats(campaigns) {
+        const userCampaigns = campaigns.filter(c => c.userId === currentUser.id);
+        const pending = userCampaigns.filter(c => c.status === 'pending').length;
+        const active = userCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length;
+        const completed = userCampaigns.filter(c => c.status === 'completed').length;
+        
+        document.getElementById('statPending').textContent = pending;
+        document.getElementById('statActive').textContent = active;
+        document.getElementById('statCompleted').textContent = completed;
+    }
+
+    function renderRules(settings) {
+        const container = document.getElementById('rulesListDisplay');
+        const rules = settings?.rules || ['No rules set by admin'];
+        container.innerHTML = rules.map(rule => `<li>${rule}</li>`).join('');
+    }
+
+    function renderBudgets(settings) {
+        const container = document.getElementById('budgetGroup');
+        const budgets = settings?.budgets || [
+            { amount: 30, label: 'Trial Pack' },
+            { amount: 50, label: 'Starter Pack' },
+            { amount: 100, label: 'Growth Pack' },
+            { amount: 500, label: 'Premium Boost' }
+        ];
+        
+        container.innerHTML = budgets.map(b => `
+            <div class="budget-btn" data-budget="${b.amount}">৳${b.amount} ${b.label}</div>
+        `).join('');
+        
+        // Re-bind budget click events - using event delegation to avoid duplicates
+    }
+
+    function renderPaymentInfo(settings) {
+        const info = settings?.paymentInfo || { number: '01727369268', binanceId: '180728766', minDeposit: 50 };
+        document.getElementById('displayPaymentNumber').textContent = info.number || '01727369268';
+        document.getElementById('displayBinanceId').textContent = info.binanceId || '180728766';
+        document.getElementById('displayMinDeposit').textContent = '৳' + (info.minDeposit || 50);
+    }
+
+    function renderPaymentMethods(settings) {
+        const select = document.getElementById('paymentMethodSelect');
+        const methods = settings?.paymentMethods || ['bKash Personal', 'Nagad', 'Rocket'];
+        select.innerHTML = methods.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
+    function renderUserInfo() {
+        document.getElementById('dashUsername').textContent = currentUser.username || 'User';
+        document.getElementById('dashPhone').textContent = '📞 ' + (currentUser.phone || '+8801XXXXXXXXX');
+    }
+
+    // ================================================================
+    // FIREBASE REAL-TIME LISTENERS
+    // ================================================================
+    function startRealtimeListeners() {
+        // Listen for settings changes
+        settingsRef.on('value', (snapshot) => {
+            settingsData = snapshot.val() || {};
+            renderRules(settingsData);
+            renderBudgets(settingsData);
+            renderPaymentInfo(settingsData);
+            renderPaymentMethods(settingsData);
+        });
+
+        // Listen for deposits
+        depositsRef.on('value', (snapshot) => {
+            const deposits = snapshot.val() || {};
+            const depositArray = Object.values(deposits);
+            renderDepositHistory(depositArray);
+        });
+
+        // Listen for campaigns
+        campaignsRef.on('value', (snapshot) => {
+            const campaigns = snapshot.val() || {};
+            const campaignArray = Object.values(campaigns);
+            renderCampaignsTable(campaignArray);
+            renderTargetUrls(campaignArray);
+            renderStats(campaignArray);
+        });
+
+        // Listen for user balance updates
+        if (currentUser.id) {
+            usersRef.child(currentUser.id).on('value', (snapshot) => {
+                const userData = snapshot.val();
+                if (userData) {
+                    currentUser.balance = userData.balance || 0;
+                    currentUser.status = userData.status || 'active';
+                    updateAllBalances();
+                }
+            });
+        }
+    }
+
+    function stopRealtimeListeners() {
+        depositsRef.off();
+        campaignsRef.off();
+        settingsRef.off();
+        if (currentUser.id) {
+            usersRef.child(currentUser.id).off();
+        }
+    }
+
+    // ================================================================
+    // SIDEBAR CONTROLS
+    // ================================================================
+    function openSidebar() {
+        document.getElementById('sidebarDrawer').classList.add('active');
+        document.getElementById('sidebarOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+        document.getElementById('sidebarDrawer').classList.remove('active');
+        document.getElementById('sidebarOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    document.getElementById('hamburgerBtn').addEventListener('click', openSidebar);
+    document.getElementById('closeSidebar').addEventListener('click', closeSidebar);
+    document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
+    // ================================================================
+    // NAVIGATION
+    // ================================================================
+    function navigateTo(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById('page-' + page);
+        if (target) target.classList.add('active');
+
+        document.querySelectorAll('.drawer-nav-item[data-page]').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-page') === page) {
+                item.classList.add('active');
+            }
+        });
+
+        closeSidebar();
+    }
+
+    document.querySelectorAll('.drawer-nav-item[data-page]').forEach(item => {
+        item.addEventListener('click', () => {
+            const page = item.getAttribute('data-page');
+            navigateTo(page);
+        });
+    });
+
+    // ================================================================
+    // AUTHENTICATION
+    // ================================================================
+    function renderAuth() {
+        const container = document.getElementById('authContainer');
+        container.innerHTML = `
+            <div style="background:white; border-radius:30px; padding:40px 30px; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+                <h1 style="font-size:28px; font-weight:900; color:#0a1e2f;">PAID CAMPAIGN</h1>
+                <p style="color:#6b7f94; margin-bottom:28px;">Sign in to manage your campaigns</p>
+
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="loginPhone" placeholder="Enter phone number">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPass" placeholder="Enter password">
+                </div>
+                <button class="btn-primary" id="loginBtn">Sign In</button>
+
+                <p style="text-align:center; margin-top:20px; color:#5b6e8c;">
+                    Don't have an account? <a href="#" id="showSignup" style="color:#0a1e2f; font-weight:700; text-decoration:none;">Sign Up Here</a>
+                </p>
+            </div>
+        `;
+
+        document.getElementById('loginBtn').addEventListener('click', handleLogin);
+        document.getElementById('loginPass').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+        document.getElementById('loginPhone').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        document.getElementById('showSignup').addEventListener('click', (e) => {
+            e.preventDefault();
+            renderSignup();
+        });
+    }
+
+    async function handleLogin() {
+        const phone = document.getElementById('loginPhone').value.trim();
+        const pass = document.getElementById('loginPass').value.trim();
+
+        if (!phone || !pass) {
+            showToast('Please enter phone and password', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> Signing In...';
+
+        try {
+            const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+            const users = snapshot.val();
+            
+            let foundUser = null;
+            let userId = null;
+            
+            if (users) {
+                for (const [key, value] of Object.entries(users)) {
+                    if (value.password === pass) {
+                        foundUser = value;
+                        userId = key;
+                        break;
+                    }
+                }
+            }
+
+            if (foundUser && userId) {
+                if (foundUser.status === 'banned') {
+                    showToast('🚫 Your account has been banned by admin!', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = 'Sign In';
+                    return;
+                }
+                
+                currentUser.id = userId;
+                currentUser.username = foundUser.username || 'User';
+                currentUser.phone = foundUser.phone;
+                currentUser.balance = foundUser.balance || 0;
+                currentUser.status = foundUser.status || 'active';
+                
+                isLoggedIn = true;
+                showDashboard();
+                showToast(`✅ Welcome back, ${currentUser.username}!`, 'success');
+                startRealtimeListeners();
+                
+            } else {
+                showToast('❌ Invalid phone number or password!', 'error');
+            }
+        } catch (error) {
+            showToast('❌ Error: ' + error.message, 'error');
+            console.error(error);
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = 'Sign In';
+    }
+
+    function renderSignup() {
+        const container = document.getElementById('authContainer');
+        container.innerHTML = `
+            <div style="background:white; border-radius:30px; padding:40px 30px; box-shadow:0 10px 30px rgba(0,0,0,0.08);">
+                <h1 style="font-size:28px; font-weight:900; color:#0a1e2f;">PAID CAMPAIGN</h1>
+                <p style="color:#6b7f94; margin-bottom:28px;">Create your account</p>
+
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="regUsername" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="regPhone" placeholder="Account phone number">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="regPass" placeholder="Create a password">
+                </div>
+                <button class="btn-primary" id="signupBtn">Create Account</button>
+
+                <p style="text-align:center; margin-top:20px; color:#5b6e8c;">
+                    Already have an account? <a href="#" id="showLogin" style="color:#0a1e2f; font-weight:700; text-decoration:none;">Sign In Here</a>
+                </p>
+            </div>
+        `;
+
+        document.getElementById('signupBtn').addEventListener('click', handleSignup);
+        document.getElementById('regPass').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSignup();
+        });
+
+        document.getElementById('showLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            renderAuth();
+        });
+    }
+
+    async function handleSignup() {
+        const uname = document.getElementById('regUsername').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const pass = document.getElementById('regPass').value.trim();
+
+        if (!uname || !phone || !pass) {
+            showToast('Please fill all fields', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('signupBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> Creating Account...';
+
+        try {
+            const snapshot = await usersRef.orderByChild('phone').equalTo(phone).once('value');
+            if (snapshot.exists()) {
+                showToast('❌ This phone number is already registered!', 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Create Account';
+                return;
+            }
+
+            const newUser = {
+                username: uname,
+                phone: phone,
+                password: pass,
+                balance: 0,
+                status: 'active',
+                createdAt: new Date().toISOString()
+            };
+
+            const newRef = usersRef.push(newUser);
+            
+            currentUser.id = newRef.key;
+            currentUser.username = uname;
+            currentUser.phone = phone;
+            currentUser.balance = 0;
+            currentUser.status = 'active';
+            
+            isLoggedIn = true;
+            showToast('✅ Account created successfully!', 'success');
+            showDashboard();
+            startRealtimeListeners();
+
+        } catch (error) {
+            showToast('❌ Error: ' + error.message, 'error');
+            console.error(error);
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = 'Create Account';
+    }
+
+    // ================================================================
+    // DASHBOARD SHOW
+    // ================================================================
+    function showDashboard() {
+        document.getElementById('authView').classList.add('hidden');
+        document.getElementById('dashView').classList.remove('hidden');
+        renderUserInfo();
+        updateAllBalances();
+        navigateTo('dashboard');
+    }
+
+    // ================================================================
+    // LOGOUT
+    // ================================================================
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        stopRealtimeListeners();
+        isLoggedIn = false;
+        currentUser = { id: null, username: '', phone: '', balance: 0 };
+        document.getElementById('dashView').classList.add('hidden');
+        document.getElementById('authView').classList.remove('hidden');
+        renderAuth();
+        showToast('👋 Logged out successfully', 'info');
+    });
+
+    // ================================================================
+    // EVENT BINDING - Using event delegation to prevent duplicates
+    // ================================================================
+    function setupEventListeners() {
+        // ===== BUDGET BUTTONS - Using event delegation =====
+        document.getElementById('budgetGroup').addEventListener('click', function(e) {
+            const btn = e.target.closest('.budget-btn');
+            if (!btn) return;
+            
+            document.querySelectorAll('.budget-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedBudget = parseInt(btn.getAttribute('data-budget'));
+        });
+
+        // ===== LAUNCH CAMPAIGN =====
+        const launchBtn = document.getElementById('launchCampaignBtn');
+        // Remove any existing listeners by cloning
+        const newLaunchBtn = launchBtn.cloneNode(true);
+        launchBtn.parentNode.replaceChild(newLaunchBtn, launchBtn);
+        
+        newLaunchBtn.addEventListener('click', async function(e) {
+            // Prevent double submit
+            if (isCampaignSubmitting) return;
+            isCampaignSubmitting = true;
+            
+            const url = document.getElementById('campaignUrl').value.trim();
+            if (!url) { 
+                showToast('Enter target URL', 'error'); 
+                isCampaignSubmitting = false;
+                return; 
+            }
+            if (!selectedBudget) { 
+                showToast('Select a budget tier', 'error'); 
+                isCampaignSubmitting = false;
+                return; 
+            }
+            if (currentUser.balance < selectedBudget) {
+                showToast(`Insufficient balance. Need ৳${selectedBudget}. Please deposit.`, 'error');
+                isCampaignSubmitting = false;
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<span class="loading-spinner"></span> Submitting...';
+
+            try {
+                const newBalance = currentUser.balance - selectedBudget;
+                await usersRef.child(currentUser.id).update({ balance: newBalance });
+                currentUser.balance = newBalance;
+
+                await campaignsRef.push({
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    budget: selectedBudget,
+                    targetUrl: url,
+                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                });
+
+                document.getElementById('campaignUrl').value = '';
+                document.querySelectorAll('.budget-btn').forEach(b => b.classList.remove('selected'));
+                selectedBudget = null;
+                
+                showToast('✅ Campaign submitted for admin review!', 'success');
+                updateAllBalances();
+                navigateTo('mycampaigns');
+
+            } catch (error) {
+                showToast('❌ Error: ' + error.message, 'error');
+                console.error(error);
+            }
+
+            this.disabled = false;
+            this.innerHTML = 'Launch Campaign Now';
+            isCampaignSubmitting = false;
+        });
+
+        // ===== SUBMIT DEPOSIT =====
+        const depositBtn = document.getElementById('submitDepositBtn');
+        // Remove any existing listeners by cloning
+        const newDepositBtn = depositBtn.cloneNode(true);
+        depositBtn.parentNode.replaceChild(newDepositBtn, depositBtn);
+        
+        newDepositBtn.addEventListener('click', async function(e) {
+            // Prevent double submit
+            if (isDepositSubmitting) return;
+            isDepositSubmitting = true;
+            
+            const mobile = document.getElementById('depositMobile').value.trim();
+            const trxid = document.getElementById('depositTrxid').value.trim();
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            const method = document.getElementById('paymentMethodSelect').value;
+            const minDeposit = settingsData?.paymentInfo?.minDeposit || 50;
+            
+            if (!mobile) { 
+                showToast('Enter sender mobile number', 'error'); 
+                isDepositSubmitting = false;
+                return; 
+            }
+            if (!trxid) { 
+                showToast('Enter transaction ID', 'error'); 
+                isDepositSubmitting = false;
+                return; 
+            }
+            if (!amount || amount < minDeposit) { 
+                showToast(`Minimum deposit is ৳${minDeposit}`, 'error'); 
+                isDepositSubmitting = false;
+                return; 
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<span class="loading-spinner"></span> Submitting...';
+
+            try {
+                await depositsRef.push({
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    method: method,
+                    trxid: trxid,
+                    amount: amount,
+                    status: 'pending',
+                    date: new Date().toLocaleDateString(),
+                    createdAt: new Date().toISOString()
+                });
+
+                showToast('✅ Deposit request submitted! Admin will verify and approve.', 'success');
+                document.getElementById('depositMobile').value = '';
+                document.getElementById('depositTrxid').value = '';
+                document.getElementById('depositAmount').value = '';
+
+            } catch (error) {
+                showToast('❌ Error: ' + error.message, 'error');
+                console.error(error);
+            }
+
+            this.disabled = false;
+            this.innerHTML = 'Submit Deposit Request';
+            isDepositSubmitting = false;
+        });
+    }
+
+    // ================================================================
+    // INIT
+    // ================================================================
+    renderAuth();
+    setupEventListeners();
+
+    // Re-setup after navigation
+    const originalNavigate = navigateTo;
+    navigateTo = function(page) {
+        originalNavigate(page);
+        // Re-setup event listeners after DOM update
+        setTimeout(setupEventListeners, 100);
+    };
+
+    console.log('✅ User Panel Loaded - Firebase Connected');
+    console.log('📌 Double submit prevention enabled');
+</script>
+
+</body>
+</html>
